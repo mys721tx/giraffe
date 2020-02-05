@@ -1,5 +1,5 @@
 use std::io;
-use rusqlite::{named_params, Connection};
+use rusqlite::{params, Connection};
 use bio::io::gff;
 
 fn main() {
@@ -19,21 +19,25 @@ fn main() {
             frame TEXT
         );
         CREATE TABLE IF NOT EXISTS attr (
-            id INTEGER,
+            anno_id INTEGER,
             type TEXT,
             value TEXT,
-            PRIMARY KEY (id),
-            FOREIGN KEY (id)
+            FOREIGN KEY (anno_id)
                 REFERENCES anno (id)
                     ON DELETE CASCADE
                     ON UPDATE NO ACTION
-        )").unwrap();
+        );
+        CREATE INDEX anno_id ON attr (anno_id);
+        ").unwrap();
 
     let mut reader = gff::Reader::new(io::stdin(), gff::GffType::GFF3);
 
-    let mut stmt = conn.prepare("INSERT INTO anno
+    let mut stmt_anno = conn.prepare("INSERT INTO anno
         (seqname, source, feature_type, start, end, score, strand, frame)
-        VALUES (:seqname, :source, :feature_type, :start, :end, :score, :strand, :frame)").unwrap();
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)").unwrap();
+
+    let mut stmt_attr = conn.prepare("INSERT INTO attr
+        (anno_id, type, value) VALUES (?, ?, ?)").unwrap();
 
     conn.execute_batch("BEGIN TRANSACTION;").unwrap();
 
@@ -45,18 +49,22 @@ fn main() {
         let score = r.score().map(|x| x as i64);
         let strand = r.strand().map(|x| x.to_string());
 
-        stmt.execute_named(
-            named_params!{
-                ":seqname": r.seqname(),
-                ":source": r.source(),
-                ":feature_type": r.feature_type(),
-                ":start": start,
-                ":end": end,
-                ":score": score,
-                ":strand": strand,
-                ":frame": r.frame()
-            }
+        let row = stmt_anno.insert(
+            params![
+                r.seqname(),
+                r.source(),
+                r.feature_type(),
+                start,
+                end,
+                score,
+                strand,
+                r.frame()
+            ]
         ).unwrap();
+
+        for (key, value) in r.attributes().iter() {
+            stmt_attr.insert(params![row, key, value]).unwrap();
+        }
     }
 
     conn.execute_batch("END TRANSACTION;").unwrap();
