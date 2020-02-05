@@ -9,3 +9,4 @@ edition = "2018"
 [dependencies]
 bio = "0.30"
 rusqlite = "0.21"
+clap = "2.33"
