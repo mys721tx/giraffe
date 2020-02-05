@@ -12,8 +12,6 @@ fn main() {
             seqname TEXT,
             source TEXT,
             feature_type TEXT,
-            start INTEGER,
-            end INTEGER,
             score TEXT,
             strand TEXT,
             frame TEXT
@@ -28,16 +26,25 @@ fn main() {
                     ON UPDATE NO ACTION
         );
         CREATE INDEX anno_id ON attr (anno_id);
+        CREATE VIRTUAL TABLE domain USING rtree_i32(
+            id,
+            start,
+            end
+        );
         ").unwrap();
 
     let mut reader = gff::Reader::new(io::stdin(), gff::GffType::GFF3);
 
     let mut stmt_anno = conn.prepare("INSERT INTO anno
-        (seqname, source, feature_type, start, end, score, strand, frame)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)").unwrap();
+        (seqname, source, feature_type, score, strand, frame)
+        VALUES (?, ?, ?, ?, ?, ?)").unwrap();
 
     let mut stmt_attr = conn.prepare("INSERT INTO attr
         (anno_id, type, value) VALUES (?, ?, ?)").unwrap();
+
+    let mut stmt_rtree = conn.prepare("INSERT INTO domain
+        (id, start, end)
+        VALUES (?, ?, ?)").unwrap();
 
     conn.execute_batch("BEGIN TRANSACTION;").unwrap();
 
@@ -54,13 +61,13 @@ fn main() {
                 r.seqname(),
                 r.source(),
                 r.feature_type(),
-                start,
-                end,
                 score,
                 strand,
                 r.frame()
             ]
         ).unwrap();
+
+        stmt_rtree.insert(params![row, start, end]).unwrap();
 
         for (key, value) in r.attributes().iter() {
             stmt_attr.insert(params![row, key, value]).unwrap();
