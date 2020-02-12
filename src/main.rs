@@ -114,17 +114,22 @@ fn main() {
 
             let mut stmt_anno = conn
                 .prepare(
-                    "INSERT INTO anno
-                (id, start, end, seqname, source, feature_type, score, strand, frame)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    "INSERT INTO anno (
+                        id,
+                        start,
+                        end,
+                        seqname,
+                        source,
+                        feature_type,
+                        score,
+                        strand,
+                        frame
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 )
                 .unwrap();
 
             let mut stmt_attr = conn
-                .prepare(
-                    "INSERT INTO attr
-                (anno_id, type, value) VALUES (?, ?, ?)",
-                )
+                .prepare("INSERT INTO attr (anno_id, type, value) VALUES (?, ?, ?)")
                 .unwrap();
 
             conn.execute_batch("BEGIN TRANSACTION;").unwrap();
