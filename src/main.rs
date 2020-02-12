@@ -171,7 +171,7 @@ fn main() {
                 None => Box::new(io::stdin()),
             };
 
-            let fout: Box<dyn Write> = match matches.value_of("out") {
+            let fout: Box<dyn Write> = match matches.value_of("output") {
                 Some(f) => Box::new(BufWriter::new(File::create(f).unwrap())),
                 None => Box::new(io::stdout()),
             };
