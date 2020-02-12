@@ -1,11 +1,21 @@
 use std::io;
 use std::fs::File;
-use std::io::{Read, BufReader};
+use std::io::{Read, Write, BufReader, BufWriter};
+use std::mem::replace;
 
 use clap::{Arg, App, SubCommand};
 use rusqlite::{params, Connection};
 use rusqlite::types::Null;
+use serde::Deserialize;
+use csv::ReaderBuilder;
+use multimap::MultiMap;
 use bio::io::gff;
+
+#[derive(Debug, Deserialize, Eq, PartialEq)]
+struct Record {
+    chrom: String,
+    coord: u64,
+}
 
 fn main() {
 
@@ -28,6 +38,31 @@ fn main() {
                 .value_name("DB")
                 .help("Path to the SQLite database.")
                 .default_value("anno.db")
+                .takes_value(true)
+            )
+        )
+        .subcommand(SubCommand::with_name("query")
+            .about("Query genome coordinates in a SQLite database.")
+            .arg(Arg::with_name("database")
+                .short("d")
+                .long("db")
+                .value_name("DB")
+                .help("Path to the SQLite database.")
+                .default_value("anno.db")
+                .takes_value(true)
+            )
+            .arg(Arg::with_name("input")
+                .short("i")
+                .long("input")
+                .value_name("IN")
+                .help("Path to the input tsv table. [default: stdin]")
+                .takes_value(true)
+            )
+            .arg(Arg::with_name("output")
+                .short("o")
+                .long("output")
+                .value_name("OUT")
+                .help("Path to the output tsv table. [default: stdout]")
                 .takes_value(true)
             )
         )
@@ -108,7 +143,109 @@ fn main() {
 
             conn.execute_batch("END TRANSACTION;").unwrap();
         },
-        Some("query") => {},
+        Some("query") => {
+            let matches = matches.subcommand_matches("query").unwrap();
+
+            let fin: Box<dyn Read> = match matches.value_of("input") {
+                Some(f) => Box::new(BufReader::new(File::open(f).unwrap())),
+                None => Box::new(io::stdin()),
+            };
+
+            let fout: Box<dyn Write> = match matches.value_of("out") {
+                Some(f) => Box::new(BufWriter::new(File::create(f).unwrap())),
+                None => Box::new(io::stdout()),
+            };
+
+            let conn = Connection::open(matches.value_of("database").unwrap()).unwrap();
+
+            let mut reader = ReaderBuilder::new()
+                .delimiter(b'\t')
+                .has_headers(false)
+                .from_reader(fin);
+
+            let mut variants = MultiMap::new();
+
+            for record in reader.deserialize() {
+                let record: Record = record.unwrap();
+                variants.insert(record.chrom, record.coord);
+            }
+
+            let mut stmt_get_intervals = conn.prepare(
+                "SELECT id FROM anno
+                    WHERE seqname = (?)
+                        AND start <= (?)
+                        AND end >= (?)
+                "
+            ).unwrap();
+
+            let mut regions = MultiMap::new();
+
+            for (chrom, coords) in variants.iter_all() {
+                for coord in coords.iter() {
+                    let coord = *coord as i64;
+
+                    let mut rows = stmt_get_intervals.query(params![chrom, coord, coord]).unwrap();
+
+                    while let Some(row) = rows.next().unwrap() {
+                        let anno_id: i64 = row.get_unwrap(0);
+                        regions.insert(anno_id, coord);
+                    }
+
+                }
+            }
+
+
+            let mut stmt_get_anno = conn.prepare(
+                "SELECT seqname, source, feature_type, score, start, end, strand, frame FROM anno
+                    WHERE id = (?)"
+            ).unwrap();
+
+            let mut stmt_get_attr = conn.prepare(
+                "SELECT type, value FROM attr WHERE anno_id = (?)"
+            ).unwrap();
+
+            let mut writer = gff::Writer::new(fout, gff::GffType::GFF3);
+
+            for id in regions.keys() {
+                let mut rows = stmt_get_anno.query(params![id]).unwrap();
+
+                while let Some(row) = rows.next().unwrap() {
+
+                    let mut r = gff::Record::new();
+
+                    replace(r.seqname_mut(), row.get_unwrap::<usize, String>(0));
+
+                    replace(r.source_mut(), row.get_unwrap::<usize, String>(1));
+
+                    replace(r.feature_type_mut(), row.get_unwrap::<usize, String>(2));
+
+                    replace(r.score_mut(), row.get::<usize, i64>(3).ok().map_or_else(|| ".".to_string(), |x| x.to_string()));
+
+                    replace(r.start_mut(), row.get_unwrap::<usize, i64>(4) as u64);
+
+                    replace(r.end_mut(), row.get_unwrap::<usize, i64>(5) as u64);
+
+                    replace(r.strand_mut(), row.get::<usize, String>(6).ok().unwrap_or_else(|| ".".to_string()));
+
+                    replace(r.frame_mut(), row.get::<usize, String>(8).ok().unwrap_or_else(|| "".to_string()));
+
+                    let mut attributes: MultiMap<String, String> = MultiMap::new();
+
+                    let mut rows = stmt_get_attr.query(params![id]).unwrap();
+
+                    while let Some(row) = rows.next().unwrap() {
+                        let key = row.get_unwrap(0);
+                        let value = row.get_unwrap(1);
+
+                        attributes.insert(key, value);
+                    }
+
+                    replace(r.attributes_mut(), attributes);
+
+                    writer.write(&r).unwrap();
+                }
+            }
+        },
         _ => {},
     }
 }
