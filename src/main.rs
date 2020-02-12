@@ -276,6 +276,17 @@ fn main() {
                         attributes.insert(key, value);
                     }
 
+                    attributes.insert(
+                        "from".to_string(),
+                        regions
+                            .get_vec(id)
+                            .unwrap()
+                            .iter()
+                            .map(|x| x.to_string())
+                            .collect::<Vec<String>>()
+                            .join(" "),
+                    );
+
                     replace(r.attributes_mut(), attributes);
 
                     writer.write(&r).unwrap();
