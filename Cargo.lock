@@ -74,9 +74,9 @@ dependencies = [
 
 [[package]]
 name = "bio"
-version = "0.30.0"
+version = "0.31.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc0376f0882981c7440386b060ce1c5fdccf789f2e1e58fb3539745d19d449bd"
+checksum = "6ca7a4ba213a7a4b07471edf914d12e5afbadcd274a844ebbfe2df195301a04f"
 dependencies = [
  "approx",
  "bio-types",
