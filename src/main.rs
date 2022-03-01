@@ -4,7 +4,7 @@ use std::io::{BufReader, BufWriter, Read, Write};
 use std::mem::replace;
 
 use bio::io::gff;
-use clap::{App, Arg, SubCommand};
+use clap::{Arg, Command};
 use csv::ReaderBuilder;
 use multimap::MultiMap;
 use rusqlite::types::Null;
@@ -18,24 +18,24 @@ struct Record {
 }
 
 fn main() {
-    let matches = App::new("giraffe")
+    let matches = Command::new("giraffe")
         .version("0.1.0")
         .author("Yishen Miao")
         .about("A GFF3 utility in Rust")
         .subcommand(
-            SubCommand::with_name("build")
+            Command::new("build")
                 .about("Build a SQLite database from a GFF3 file.")
                 .arg(
-                    Arg::with_name("input")
-                        .short("i")
+                    Arg::new("input")
+                        .short('i')
                         .long("input")
                         .value_name("GFF3")
                         .help("Path to the GFF3 file. [default: stdin]")
                         .takes_value(true),
                 )
                 .arg(
-                    Arg::with_name("output")
-                        .short("o")
+                    Arg::new("output")
+                        .short('o')
                         .long("output")
                         .value_name("DB")
                         .help("Path to the SQLite database.")
@@ -44,11 +44,11 @@ fn main() {
                 ),
         )
         .subcommand(
-            SubCommand::with_name("query")
+            Command::new("query")
                 .about("Query genome coordinates in a SQLite database.")
                 .arg(
-                    Arg::with_name("database")
-                        .short("d")
+                    Arg::new("database")
+                        .short('d')
                         .long("db")
                         .value_name("DB")
                         .help("Path to the SQLite database.")
@@ -56,16 +56,16 @@ fn main() {
                         .takes_value(true),
                 )
                 .arg(
-                    Arg::with_name("input")
-                        .short("i")
+                    Arg::new("input")
+                        .short('i')
                         .long("input")
                         .value_name("IN")
                         .help("Path to the input tsv table. [default: stdin]")
                         .takes_value(true),
                 )
                 .arg(
-                    Arg::with_name("output")
-                        .short("o")
+                    Arg::new("output")
+                        .short('o')
                         .long("output")
                         .value_name("OUT")
                         .help("Path to the output tsv table. [default: stdout]")
