@@ -6,8 +6,4 @@ updates:
     interval: monthly
     time: "10:00"
   open-pull-requests-limit: 10
-  ignore:
-  - dependency-name: multimap
-    versions:
-    - "> 0.6.0"
   rebase-strategy: disabled
