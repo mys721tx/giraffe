@@ -8,7 +8,7 @@ edition = "2021"
 
 [dependencies]
 bio = "0.42"
-rusqlite = { version = "0.28", features = ["bundled"] }
+rusqlite = { version = "0.30", features = ["bundled"] }
 clap = "3.2"
 serde = "1.0"
 csv = "1.1"
