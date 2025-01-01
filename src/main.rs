@@ -2,9 +2,10 @@ use std::fs::File;
 use std::io;
 use std::io::{BufReader, BufWriter, Read, Write};
 use std::mem::replace;
+use std::path::PathBuf;
 
 use bio::io::gff;
-use clap::{Arg, Command};
+use clap::{value_parser, Arg, Command};
 use csv::ReaderBuilder;
 use multimap::MultiMap;
 use rusqlite::types::Null;
@@ -30,17 +31,19 @@ fn main() {
                         .short('i')
                         .long("input")
                         .value_name("GFF3")
-                        .help("Path to the GFF3 file. [default: stdin]")
-                        .takes_value(true),
+                        .value_parser(value_parser!(PathBuf))
+                        .help("Sets the name of the input file. Defaults to stdin.")
+                        .action(clap::ArgAction::Set),
                 )
                 .arg(
                     Arg::new("output")
                         .short('o')
                         .long("output")
                         .value_name("DB")
-                        .help("Path to the SQLite database.")
+                        .help("Sets the name of the output file. Defaults to \"anno.db\".")
                         .default_value("anno.db")
-                        .takes_value(true),
+                        .value_parser(value_parser!(PathBuf))
+                        .action(clap::ArgAction::Set),
                 ),
         )
         .subcommand(
@@ -53,7 +56,7 @@ fn main() {
                         .value_name("DB")
                         .help("Path to the SQLite database.")
                         .default_value("anno.db")
-                        .takes_value(true),
+                        .action(clap::ArgAction::Set),
                 )
                 .arg(
                     Arg::new("input")
@@ -61,7 +64,7 @@ fn main() {
                         .long("input")
                         .value_name("IN")
                         .help("Path to the input tsv table. [default: stdin]")
-                        .takes_value(true),
+                        .action(clap::ArgAction::Set),
                 )
                 .arg(
                     Arg::new("output")
@@ -69,7 +72,7 @@ fn main() {
                         .long("output")
                         .value_name("OUT")
                         .help("Path to the output tsv table. [default: stdout]")
-                        .takes_value(true),
+                        .action(clap::ArgAction::Set),
                 ),
         )
         .get_matches();
@@ -78,12 +81,12 @@ fn main() {
         Some("build") => {
             let matches = matches.subcommand_matches("build").unwrap();
 
-            let fin: Box<dyn Read> = match matches.value_of("input") {
+            let fin: Box<dyn Read> = match matches.get_one::<PathBuf>("input") {
                 Some(f) => Box::new(BufReader::new(File::open(f).unwrap())),
                 None => Box::new(io::stdin()),
             };
 
-            let conn = Connection::open(matches.value_of("output").unwrap()).unwrap();
+            let conn = Connection::open(matches.get_one::<PathBuf>("output").unwrap()).unwrap();
 
             conn.execute_batch(
                 "CREATE VIRTUAL TABLE anno USING rtree_i32 (
@@ -166,17 +169,17 @@ fn main() {
         Some("query") => {
             let matches = matches.subcommand_matches("query").unwrap();
 
-            let fin: Box<dyn Read> = match matches.value_of("input") {
+            let fin: Box<dyn Read> = match matches.get_one::<PathBuf>("input") {
                 Some(f) => Box::new(BufReader::new(File::open(f).unwrap())),
                 None => Box::new(io::stdin()),
             };
 
-            let fout: Box<dyn Write> = match matches.value_of("output") {
+            let fout: Box<dyn Write> = match matches.get_one::<PathBuf>("output") {
                 Some(f) => Box::new(BufWriter::new(File::create(f).unwrap())),
                 None => Box::new(io::stdout()),
             };
 
-            let conn = Connection::open(matches.value_of("database").unwrap()).unwrap();
+            let conn = Connection::open(matches.get_one::<PathBuf>("database").unwrap()).unwrap();
 
             let mut reader = ReaderBuilder::new()
                 .delimiter(b'\t')
@@ -234,31 +237,31 @@ fn main() {
                 while let Some(row) = rows.next().unwrap() {
                     let mut r = gff::Record::new();
 
-                    replace(r.seqname_mut(), row.get_unwrap::<usize, String>(0));
+                    let _ = replace(r.seqname_mut(), row.get_unwrap::<usize, String>(0));
 
-                    replace(r.source_mut(), row.get_unwrap::<usize, String>(1));
+                    let _ = replace(r.source_mut(), row.get_unwrap::<usize, String>(1));
 
-                    replace(r.feature_type_mut(), row.get_unwrap::<usize, String>(2));
+                    let _ = replace(r.feature_type_mut(), row.get_unwrap::<usize, String>(2));
 
-                    replace(
+                    let _ = replace(
                         r.score_mut(),
                         row.get::<usize, i64>(3)
                             .ok()
                             .map_or_else(|| ".".to_string(), |x| x.to_string()),
                     );
 
-                    replace(r.start_mut(), row.get_unwrap::<usize, i64>(4) as u64);
+                    let _ = replace(r.start_mut(), row.get_unwrap::<usize, i64>(4) as u64);
 
-                    replace(r.end_mut(), row.get_unwrap::<usize, i64>(5) as u64);
+                    let _ = replace(r.end_mut(), row.get_unwrap::<usize, i64>(5) as u64);
 
-                    replace(
+                    let _ = replace(
                         r.strand_mut(),
                         row.get::<usize, String>(6)
                             .ok()
                             .unwrap_or_else(|| ".".to_string()),
                     );
 
-                    replace(
+                    let _ = replace(
                         r.frame_mut(),
                         row.get::<usize, String>(8)
                             .ok()
@@ -287,7 +290,7 @@ fn main() {
                             .join(" "),
                     );
 
-                    replace(r.attributes_mut(), attributes);
+                    let _ = replace(r.attributes_mut(), attributes);
 
                     writer.write(&r).unwrap();
                 }
