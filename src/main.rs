@@ -98,7 +98,7 @@ fn main() {
                     +feature_type TEXT,
                     +score TEXT,
                     +strand TEXT,
-                    +frame TEXT
+                    +phase
                 );
                 CREATE TABLE IF NOT EXISTS attr (
                     anno_id INTEGER,
@@ -126,7 +126,7 @@ fn main() {
                         feature_type,
                         score,
                         strand,
-                        frame
+                        phase
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 )
                 .unwrap();
@@ -144,6 +144,7 @@ fn main() {
                 let end = *r.end() as i64;
                 let score = r.score().map(|x| x as i64);
                 let strand = r.strand().map(|x| x.to_string());
+                let phase: Option<u8> = r.phase().clone().try_into().ok();
 
                 let row = stmt_anno
                     .insert(params![
@@ -155,7 +156,7 @@ fn main() {
                         r.feature_type(),
                         score,
                         strand,
-                        r.frame()
+                        phase
                     ])
                     .unwrap();
 
@@ -262,10 +263,8 @@ fn main() {
                     );
 
                     let _ = replace(
-                        r.frame_mut(),
-                        row.get::<usize, String>(8)
-                            .ok()
-                            .unwrap_or_else(|| "".to_string()),
+                        r.phase_mut(),
+                        gff::Phase::from(row.get_unwrap::<usize, u8>(8)),
                     );
 
                     let mut attributes: MultiMap<String, String> = MultiMap::new();
