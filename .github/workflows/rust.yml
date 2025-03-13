@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master dev ]
   pull_request:
     branches: [ master ]
 
@@ -19,10 +19,10 @@ jobs:
           toolchain: stable
           override: true
           components: rustfmt
-      
+
       - name: Check format
         run: cargo fmt -- --check
-     
+
   Linting:
     runs-on: ubuntu-latest
     steps:
@@ -35,7 +35,7 @@ jobs:
           toolchain: stable
           override: true
           components: clippy
-      
+
       - name: Lint with clippy
         uses: actions-rs/clippy-check@v1
         with:
