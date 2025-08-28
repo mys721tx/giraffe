@@ -2,9 +2,10 @@ name: CI
 
 on:
   push:
-    branches: [ master dev ]
   pull_request:
-    branches: [ master ]
+
+permissions:
+  contents: read
 
 jobs:
   Formatting:
@@ -35,7 +36,7 @@ jobs:
           components: clippy
 
       - name: Lint with clippy
-        uses: actions-rs/clippy-check@v1
+        uses: auguwu/clippy-action@1.4.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
