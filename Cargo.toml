@@ -7,7 +7,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bio = "3.0"
+bio = "4.0"
 rusqlite = { version = "0.40", features = ["bundled"] }
 clap = "4.6"
 serde = "1.0"
