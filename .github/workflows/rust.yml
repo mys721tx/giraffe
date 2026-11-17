@@ -25,6 +25,9 @@ jobs:
 
   Linting:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -71,7 +74,7 @@ jobs:
           toolchain: ${{ matrix.rust }}
 
       - name: Run tests
-        uses: actions-rs/cargo@v1
+        uses: clechasseur/rs-cargo@v5.1.2
         with:
           command: test
           args: --all --no-fail-fast
