@@ -2,7 +2,7 @@ use std::fs::File;
 use std::io::{self, BufReader, BufWriter, Read, Write};
 use std::path::PathBuf;
 
-use clap::{value_parser, Arg, Command};
+use clap::{Arg, Command, value_parser};
 use giraffe::Index;
 
 fn main() {

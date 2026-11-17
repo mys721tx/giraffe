@@ -155,9 +155,11 @@ chr2\tsrc\tgene\t100\t200\t.\t.\t.\tID=gene3
 
     #[test]
     fn empty_input() {
-        assert!(Index::from_gff("##gff-version 3\n".as_bytes())
-            .unwrap()
-            .is_empty());
+        assert!(
+            Index::from_gff("##gff-version 3\n".as_bytes())
+                .unwrap()
+                .is_empty()
+        );
     }
 
     #[test]

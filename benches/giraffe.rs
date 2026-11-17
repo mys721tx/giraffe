@@ -1,7 +1,7 @@
 use std::fmt::Write as _;
 use std::hint::black_box;
 
-use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use criterion::{BenchmarkId, Criterion, Throughput, criterion_group, criterion_main};
 use giraffe::Index;
 
 const CHROMS: usize = 4;
