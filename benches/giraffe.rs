@@ -1,8 +1,8 @@
 use std::fmt::Write as _;
 use std::hint::black_box;
 
-use criterion::{criterion_group, criterion_main, BatchSize, BenchmarkId, Criterion, Throughput};
-use rusqlite::Connection;
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use giraffe::Index;
 
 const CHROMS: usize = 4;
 
@@ -46,12 +46,6 @@ fn synthetic_coords(n: usize, genes: usize) -> String {
     s
 }
 
-fn build_db(gff: &str) -> Connection {
-    let conn = Connection::open_in_memory().unwrap();
-    giraffe::build(&conn, gff.as_bytes()).unwrap();
-    conn
-}
-
 fn bench_build(c: &mut Criterion) {
     let mut group = c.benchmark_group("build");
     group.sample_size(20);
@@ -60,11 +54,7 @@ fn bench_build(c: &mut Criterion) {
         let gff = synthetic_gff(genes);
         group.throughput(Throughput::Elements((genes * 3) as u64));
         group.bench_with_input(BenchmarkId::from_parameter(genes * 3), &gff, |b, gff| {
-            b.iter_batched(
-                || Connection::open_in_memory().unwrap(),
-                |conn| giraffe::build(&conn, black_box(gff.as_bytes())).unwrap(),
-                BatchSize::LargeInput,
-            )
+            b.iter(|| Index::from_gff(black_box(gff.as_bytes())).unwrap())
         });
     }
 
@@ -73,7 +63,7 @@ fn bench_build(c: &mut Criterion) {
 
 fn bench_query(c: &mut Criterion) {
     const GENES: usize = 10_000;
-    let conn = build_db(&synthetic_gff(GENES));
+    let index = Index::from_gff(synthetic_gff(GENES).as_bytes()).unwrap();
 
     let mut group = c.benchmark_group("query");
 
@@ -84,7 +74,7 @@ fn bench_query(c: &mut Criterion) {
             let mut out = Vec::with_capacity(1 << 20);
             b.iter(|| {
                 out.clear();
-                giraffe::query(&conn, black_box(coords.as_bytes()), &mut out).unwrap()
+                index.query(black_box(coords.as_bytes()), &mut out).unwrap()
             })
         });
     }
@@ -94,11 +84,11 @@ fn bench_query(c: &mut Criterion) {
 
 fn bench_find_overlaps(c: &mut Criterion) {
     const GENES: usize = 10_000;
-    let conn = build_db(&synthetic_gff(GENES));
+    let index = Index::from_gff(synthetic_gff(GENES).as_bytes()).unwrap();
     let variants = giraffe::read_coordinates(synthetic_coords(1_000, GENES).as_bytes()).unwrap();
 
     c.bench_function("find_overlaps/1000", |b| {
-        b.iter(|| giraffe::find_overlaps(&conn, black_box(&variants)).unwrap())
+        b.iter(|| index.find_overlaps(black_box(&variants)))
     });
 }
 
