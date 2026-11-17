@@ -7,14 +7,14 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bio = "4.2"
-clap = "4.6"
-serde = "1.0"
-csv = "1.4"
-multimap = "0.10.0"
+bio = "4.2.2"
+clap = "4.6.8"
+serde = "1.0.229"
+csv = "1.4.0"
+multimap = "0.10.1"
 
 [dev-dependencies]
-criterion = "0.7"
+criterion = "0.8.2"
 
 [[bench]]
 name = "giraffe"
