@@ -13,3 +13,10 @@ clap = "4.6"
 serde = "1.0"
 csv = "1.4"
 multimap = "0.10.0"
+
+[dev-dependencies]
+criterion = "0.7"
+
+[[bench]]
+name = "giraffe"
+harness = false
