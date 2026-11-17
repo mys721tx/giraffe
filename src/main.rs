@@ -222,7 +222,7 @@ fn main() {
             }
 
             let mut stmt_get_anno = conn.prepare(
-                "SELECT seqname, source, feature_type, score, start, end, strand, frame FROM anno
+                "SELECT seqname, source, feature_type, score, start, end, strand, phase FROM anno
                     WHERE id = (?)"
             ).unwrap();
 
@@ -264,7 +264,7 @@ fn main() {
 
                     let _ = replace(
                         r.phase_mut(),
-                        gff::Phase::from(row.get_unwrap::<usize, u8>(8)),
+                        gff::Phase::try_from(row.get_unwrap::<usize, Option<u8>>(7)).unwrap(),
                     );
 
                     let mut attributes: MultiMap<String, String> = MultiMap::new();
