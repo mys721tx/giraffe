@@ -56,6 +56,7 @@ fn main() {
                         .value_name("DB")
                         .help("Path to the SQLite database.")
                         .default_value("anno.db")
+                        .value_parser(value_parser!(PathBuf))
                         .action(clap::ArgAction::Set),
                 )
                 .arg(
@@ -64,6 +65,7 @@ fn main() {
                         .long("input")
                         .value_name("IN")
                         .help("Path to the input tsv table. [default: stdin]")
+                        .value_parser(value_parser!(PathBuf))
                         .action(clap::ArgAction::Set),
                 )
                 .arg(
@@ -72,6 +74,7 @@ fn main() {
                         .long("output")
                         .value_name("OUT")
                         .help("Path to the output tsv table. [default: stdout]")
+                        .value_parser(value_parser!(PathBuf))
                         .action(clap::ArgAction::Set),
                 ),
         )
@@ -103,11 +106,7 @@ fn main() {
                 CREATE TABLE IF NOT EXISTS attr (
                     anno_id INTEGER,
                     type TEXT,
-                    value TEXT,
-                    FOREIGN KEY (anno_id)
-                        REFERENCES anno (id)
-                            ON DELETE CASCADE
-                            ON UPDATE NO ACTION
+                    value TEXT
                 );
                 CREATE INDEX anno_id ON attr (anno_id);",
             )
